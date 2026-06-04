@@ -15,8 +15,7 @@
       <section class="workspace">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Workout Timer</p>
-            <h1>動画をタイマーに変える</h1>
+            <h1>Workout Timer</h1>
             <p class="subtitle">ワークアウト動画からメニューを抽出して、好きなYouTubeと一緒に進めます。</p>
           </div>
           <div class="status-pill" id="saveStatus">保存済み</div>
@@ -62,9 +61,8 @@
           <div class="saved-list" id="savedList"></div>
         </section>
 
-        <section class="ready-panel" aria-label="ワークアウト準備">
+        <section class="selected-panel" aria-label="選択中のワークアウト">
           <div>
-            <p class="eyebrow">Ready</p>
             <h2 id="workoutTitle">ワークアウト</h2>
             <p id="workoutSummary">0種目 / 0:00</p>
           </div>
@@ -131,26 +129,6 @@
         <button id="closeCompleteButton" class="primary-button full-button" type="button">閉じる</button>
       </section>
 
-      <details class="menu-panel app-menu" aria-label="メニュー編集">
-        <summary class="menu-summary">メニュー編集</summary>
-        <div class="menu-tools">
-          <button id="addItemButton" class="ghost-button" type="button">追加</button>
-        </div>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>種別</th>
-                <th>種目名</th>
-                <th>秒</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="itemsBody"></tbody>
-          </table>
-        </div>
-      </details>
     </main>
 
     <script src="app.js"></script>

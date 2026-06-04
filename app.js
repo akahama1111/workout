@@ -158,13 +158,14 @@ function renderAll() {
   renderItems();
   renderEmbed();
   renderTimer();
-  renderReady();
+  renderSelected();
   renderSavedWorkouts();
   renderMode();
   renderComplete();
 }
 
 function renderItems() {
+  if (!els.itemsBody) return;
   els.itemsBody.innerHTML = "";
 
   if (!state.items.length) {
@@ -271,7 +272,7 @@ function renderTimer() {
   els.totalDuration.textContent = formatTime(state.items.reduce((sum, item) => sum + item.durationSec, 0));
 }
 
-function renderReady() {
+function renderSelected() {
   const total = state.items.reduce((sum, item) => sum + item.durationSec, 0);
   els.workoutTitle.textContent = state.title || "ワークアウト";
   els.workoutSummary.textContent = `${state.items.length}種目 / ${formatTime(total)}`;
@@ -407,7 +408,7 @@ function updateItem(index, patch) {
   clampTimer();
   syncActiveWorkout();
   renderTimer();
-  renderReady();
+  renderSelected();
   saveState();
 }
 
@@ -422,7 +423,7 @@ function moveItem(index, direction) {
   syncActiveWorkout();
   renderItems();
   renderTimer();
-  renderReady();
+  renderSelected();
   saveState();
 }
 
@@ -436,7 +437,7 @@ function removeItem(index) {
   syncActiveWorkout();
   renderItems();
   renderTimer();
-  renderReady();
+  renderSelected();
   saveState();
 }
 
@@ -448,7 +449,7 @@ function addItem() {
   }
   renderItems();
   renderTimer();
-  renderReady();
+  renderSelected();
   syncActiveWorkout();
   saveState();
 }
@@ -484,7 +485,7 @@ async function extractMenu() {
     state.remainingMs = state.remainingSec * 1000;
     renderItems();
     renderTimer();
-    renderReady();
+    renderSelected();
     renderSavedWorkouts();
     saveState();
     showMessage(`${items.length}件のメニューを作成して保存しました。`, "ok");
@@ -804,7 +805,7 @@ function updateSavedWorkoutTitle(id, title) {
   );
   if (state.activeWorkoutId === id) {
     state.title = title.trim() || "ワークアウト";
-    renderReady();
+    renderSelected();
   }
   saveState();
 }
@@ -823,7 +824,7 @@ function updateSavedWorkoutItem(id, index, patch) {
     clampTimer();
     renderItems();
     renderTimer();
-    renderReady();
+    renderSelected();
   }
   saveState();
 }
@@ -845,7 +846,7 @@ function addSavedWorkoutItem(id) {
     state.remainingMs = state.remainingSec * 1000;
     renderItems();
     renderTimer();
-    renderReady();
+    renderSelected();
   }
   saveState();
 }
@@ -867,7 +868,7 @@ function deleteSavedWorkoutItem(id, index) {
     state.remainingMs = state.remainingSec * 1000;
     renderItems();
     renderTimer();
-    renderReady();
+    renderSelected();
   }
   saveState();
 }
@@ -903,7 +904,7 @@ function loadSavedWorkout(id) {
   els.workoutUrlInput.value = state.workoutUrl;
   renderItems();
   renderTimer();
-  renderReady();
+  renderSelected();
   renderMode();
   renderComplete();
   saveState();
@@ -914,7 +915,7 @@ function deleteSavedWorkout(id) {
   state.savedWorkouts = state.savedWorkouts.filter((workout) => workout.id !== id);
   if (state.activeWorkoutId === id) state.activeWorkoutId = "";
   renderSavedWorkouts();
-  renderReady();
+  renderSelected();
   saveState();
 }
 
@@ -970,7 +971,7 @@ function bindEvents() {
     saveState();
   });
   els.extractButton.addEventListener("click", extractMenu);
-  els.addItemButton.addEventListener("click", addItem);
+  els.addItemButton?.addEventListener("click", addItem);
   els.prepareStartButton.addEventListener("click", startPauseTimer);
   els.startPauseButton.addEventListener("click", startPauseTimer);
   els.prevButton.addEventListener("click", () => skip(-1));

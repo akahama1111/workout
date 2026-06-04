@@ -131,8 +131,7 @@ button {
 
 .setup-panel,
 .saved-panel,
-.ready-panel,
-.menu-panel,
+.selected-panel,
 .player-panel,
 .timer-panel,
 .complete-panel {
@@ -297,7 +296,7 @@ textarea:focus {
 .saved-panel {
   display: none;
   margin-bottom: 12px;
-  padding: 0;
+  padding: 14px;
 }
 
 body.has-saved-workouts .saved-panel {
@@ -307,7 +306,7 @@ body.has-saved-workouts .saved-panel {
 .saved-list {
   display: grid;
   gap: 10px;
-  padding: 0 14px 14px;
+  padding: 0;
 }
 
 .saved-card {
@@ -371,24 +370,24 @@ body.has-saved-workouts .saved-panel {
   width: 100%;
 }
 
-.ready-panel {
+.selected-panel {
   display: none;
   gap: 12px;
   margin-bottom: 12px;
   padding: 14px;
 }
 
-body.has-workout .ready-panel {
+body.has-workout .selected-panel {
   display: grid;
 }
 
-.ready-panel h2 {
+.selected-panel h2 {
   margin: 3px 0 4px;
   font-size: 1.15rem;
   line-height: 1.25;
 }
 
-.ready-panel p {
+.selected-panel p {
   margin: 0;
   color: var(--muted);
   font-size: 0.9rem;
@@ -400,7 +399,6 @@ body.has-workout .ready-panel {
   gap: 12px;
 }
 
-.menu-panel,
 .player-panel {
   min-width: 0;
   padding: 14px;
@@ -413,33 +411,6 @@ body.has-workout .ready-panel {
 
 body.has-media .player-panel {
   display: block;
-}
-
-.menu-panel {
-  order: 2;
-  padding: 0;
-}
-
-.app-menu {
-  grid-column: 1 / -1;
-}
-
-.menu-summary {
-  min-height: 48px;
-  padding: 14px;
-  color: var(--ink);
-  cursor: pointer;
-  font-weight: 900;
-}
-
-.menu-tools {
-  display: flex;
-  justify-content: flex-end;
-  padding: 0 14px 10px;
-}
-
-.menu-panel .table-wrap {
-  padding: 0 14px 14px;
 }
 
 .section-head {
@@ -725,8 +696,7 @@ body.training-mode .timer-panel {
 body.training-mode .topbar,
 body.training-mode .setup-panel,
 body.training-mode .saved-panel,
-body.training-mode .ready-panel,
-body.training-mode .menu-panel,
+body.training-mode .selected-panel,
 body.training-mode .complete-panel,
 body.training-mode .player-panel .section-head,
 body.training-mode .player-panel .field,
