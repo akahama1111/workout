@@ -35,13 +35,8 @@
               <span>ワークアウト動画URL</span>
               <input id="workoutUrlInput" type="url" placeholder="https://www.youtube.com/watch?v=..." />
             </label>
-            <button id="extractButton" class="primary-button" type="button">抽出</button>
+            <button id="extractButton" class="primary-button" type="button">動画からメニュー作成</button>
           </div>
-
-          <label class="field media-field">
-            <span>流したいYouTube URL</span>
-            <input id="mediaUrlInput" type="url" placeholder="https://www.youtube.com/watch?v=..." />
-          </label>
 
           <details class="prompt-details">
             <summary>詳細設定</summary>
@@ -59,6 +54,24 @@
           </details>
 
           <div class="message-area" id="messageArea" role="status" aria-live="polite"></div>
+        </section>
+
+        <details class="saved-panel" id="savedPanel" aria-label="保存済みワークアウト">
+          <summary>保存済みワークアウト</summary>
+          <div class="saved-list" id="savedList"></div>
+        </details>
+
+        <section class="ready-panel" aria-label="ワークアウト準備">
+          <div>
+            <p class="eyebrow">Ready</p>
+            <h2 id="workoutTitle">ワークアウト</h2>
+            <p id="workoutSummary">0種目 / 0:00</p>
+          </div>
+          <label class="field media-field">
+            <span>流したいYouTube URL</span>
+            <input id="mediaUrlInput" type="url" placeholder="https://www.youtube.com/watch?v=..." />
+          </label>
+          <button id="prepareStartButton" class="primary-button full-button" type="button">ワークアウト開始</button>
         </section>
 
         <section class="content-grid">
@@ -97,8 +110,8 @@
             <button id="startPauseButton" class="primary-button control-main" type="button">ワークアウト開始</button>
             <button id="nextButton" class="control-button" type="button" title="次へ">次へ</button>
           </div>
-          <button id="resetButton" class="ghost-button full-button" type="button">リセット</button>
-          <button id="exitWorkoutButton" class="ghost-button full-button exit-button" type="button">編集に戻る</button>
+          <button id="resetButton" class="ghost-button reset-button" type="button">最初から</button>
+          <button id="exitWorkoutButton" class="ghost-button full-button exit-button" type="button">終了</button>
 
           <div class="summary-strip">
             <span>合計</span>
@@ -106,6 +119,15 @@
           </div>
         </div>
       </aside>
+
+      <section class="complete-panel" id="completePanel" aria-label="完了メッセージ">
+        <div>
+          <p class="eyebrow">Complete</p>
+          <h2>お疲れ様でした</h2>
+          <p>今日の分、ちゃんと積み上がりました。</p>
+        </div>
+        <button id="closeCompleteButton" class="primary-button full-button" type="button">閉じる</button>
+      </section>
 
       <details class="menu-panel app-menu" aria-label="メニュー編集">
         <summary class="menu-summary">メニュー編集</summary>

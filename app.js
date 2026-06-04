@@ -49,16 +49,15 @@ const state = {
   mediaUrl: "",
   prompt: DEFAULT_PROMPT,
   title: "",
-  items: [
-    { type: "warmup", name: "準備", durationSec: 10 },
-    { type: "exercise", name: "スクワット", durationSec: 30 },
-    { type: "rest", name: "休憩", durationSec: 10 },
-    { type: "exercise", name: "プランク", durationSec: 30 },
-  ],
+  items: [],
+  savedWorkouts: [],
+  activeWorkoutId: "",
   currentIndex: 0,
-  remainingSec: 10,
+  remainingSec: 0,
   isRunning: false,
   isWorkoutMode: false,
+  isExtracting: false,
+  isComplete: false,
   startedOnce: false,
   intervalId: null,
   audioContext: null,
@@ -72,6 +71,11 @@ const els = {
   extractButton: document.getElementById("extractButton"),
   promptInput: document.getElementById("promptInput"),
   messageArea: document.getElementById("messageArea"),
+  savedPanel: document.getElementById("savedPanel"),
+  savedList: document.getElementById("savedList"),
+  workoutTitle: document.getElementById("workoutTitle"),
+  workoutSummary: document.getElementById("workoutSummary"),
+  prepareStartButton: document.getElementById("prepareStartButton"),
   addItemButton: document.getElementById("addItemButton"),
   itemsBody: document.getElementById("itemsBody"),
   mediaUrlInput: document.getElementById("mediaUrlInput"),
@@ -88,6 +92,8 @@ const els = {
   nextButton: document.getElementById("nextButton"),
   resetButton: document.getElementById("resetButton"),
   exitWorkoutButton: document.getElementById("exitWorkoutButton"),
+  completePanel: document.getElementById("completePanel"),
+  closeCompleteButton: document.getElementById("closeCompleteButton"),
   totalDuration: document.getElementById("totalDuration"),
 };
 
@@ -104,9 +110,14 @@ function loadState() {
       mediaUrl: parsed.mediaUrl || "",
       prompt: parsed.prompt || DEFAULT_PROMPT,
       title: parsed.title || "",
-      items: sanitizeItems(parsed.items).length ? sanitizeItems(parsed.items) : state.items,
+      items: sanitizeItems(parsed.items),
+      savedWorkouts: sanitizeSavedWorkouts(parsed.savedWorkouts),
+      activeWorkoutId: parsed.activeWorkoutId || "",
       currentIndex: 0,
       isRunning: false,
+      isWorkoutMode: false,
+      isExtracting: false,
+      isComplete: false,
       intervalId: null,
       audioContext: null,
     });
@@ -125,6 +136,8 @@ function saveState() {
     prompt: state.prompt,
     title: state.title,
     items: state.items,
+    savedWorkouts: state.savedWorkouts,
+    activeWorkoutId: state.activeWorkoutId,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   els.saveStatus.textContent = "保存済み";
@@ -143,7 +156,10 @@ function renderAll() {
   renderItems();
   renderEmbed();
   renderTimer();
+  renderReady();
+  renderSavedWorkouts();
   renderMode();
+  renderComplete();
 }
 
 function renderItems() {
@@ -208,7 +224,7 @@ function renderItems() {
 
 function renderEmbed() {
   const id = getYouTubeId(state.mediaUrl);
-  document.body.classList.toggle("has-media", Boolean(id));
+  document.body.classList.toggle("has-media", Boolean(id) && state.items.length > 0);
   els.embedFrame.innerHTML = "";
 
   if (!id) {
@@ -252,8 +268,52 @@ function renderTimer() {
   els.totalDuration.textContent = formatTime(state.items.reduce((sum, item) => sum + item.durationSec, 0));
 }
 
+function renderReady() {
+  const total = state.items.reduce((sum, item) => sum + item.durationSec, 0);
+  els.workoutTitle.textContent = state.title || "ワークアウト";
+  els.workoutSummary.textContent = `${state.items.length}種目 / ${formatTime(total)}`;
+  els.prepareStartButton.disabled = !state.items.length;
+  document.body.classList.toggle("has-workout", state.items.length > 0);
+  document.body.classList.toggle("has-saved-workouts", state.savedWorkouts.length > 0);
+  document.body.classList.toggle("has-media", Boolean(getYouTubeId(state.mediaUrl)) && state.items.length > 0);
+}
+
 function renderMode() {
   document.body.classList.toggle("training-mode", state.isWorkoutMode);
+  document.body.classList.toggle("extracting", state.isExtracting);
+}
+
+function renderComplete() {
+  document.body.classList.toggle("complete-mode", state.isComplete);
+}
+
+function renderSavedWorkouts() {
+  els.savedList.innerHTML = "";
+  if (!state.savedWorkouts.length) return;
+
+  state.savedWorkouts.forEach((workout) => {
+    const row = document.createElement("div");
+    row.className = "saved-row";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "saved-load";
+    button.textContent = workout.title || "ワークアウト";
+    button.addEventListener("click", () => loadSavedWorkout(workout.id));
+
+    const meta = document.createElement("span");
+    meta.textContent = `${workout.items.length}種目 / ${formatTime(workout.items.reduce((sum, item) => sum + item.durationSec, 0))}`;
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "icon-button";
+    remove.textContent = "×";
+    remove.title = "削除";
+    remove.addEventListener("click", () => deleteSavedWorkout(workout.id));
+
+    row.append(button, meta, remove);
+    els.savedList.appendChild(row);
+  });
 }
 
 function makeIconButton(label, title, onClick, disabled) {
@@ -273,7 +333,9 @@ function updateItem(index, patch) {
     state.remainingSec = state.items[index].durationSec;
   }
   clampTimer();
+  syncActiveWorkout();
   renderTimer();
+  renderReady();
   saveState();
 }
 
@@ -285,8 +347,10 @@ function moveItem(index, direction) {
   if (state.currentIndex === index) state.currentIndex = nextIndex;
   else if (state.currentIndex === nextIndex) state.currentIndex = index;
   clampTimer();
+  syncActiveWorkout();
   renderItems();
   renderTimer();
+  renderReady();
   saveState();
 }
 
@@ -297,8 +361,10 @@ function removeItem(index) {
   }
   state.remainingSec = getCurrentItem()?.durationSec || 0;
   if (!state.items.length) pauseTimer();
+  syncActiveWorkout();
   renderItems();
   renderTimer();
+  renderReady();
   saveState();
 }
 
@@ -310,6 +376,8 @@ function addItem() {
   }
   renderItems();
   renderTimer();
+  renderReady();
+  syncActiveWorkout();
   saveState();
 }
 
@@ -327,7 +395,7 @@ async function extractMenu() {
   }
 
   setLoading(true);
-  showMessage("Geminiが動画を解析中です。長めの動画だと少し待ちます。", "");
+  showMessage("動画を解析中です。別タブで動画探しをしても、このページを閉じなければ続きます。", "");
 
   try {
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(state.model)}:generateContent`;
@@ -375,12 +443,15 @@ async function extractMenu() {
     pauseTimer();
     state.title = parsed.title || "";
     state.items = items;
+    saveCurrentWorkoutToLibrary();
     state.currentIndex = 0;
     state.remainingSec = items[0].durationSec;
     renderItems();
     renderTimer();
+    renderReady();
+    renderSavedWorkouts();
     saveState();
-    showMessage(`${items.length}件のメニューを抽出しました。必要なら表で直せます。`, "ok");
+    showMessage(`${items.length}件のメニューを作成して保存しました。`, "ok");
   } catch (error) {
     showMessage(error.message, "error");
   } finally {
@@ -404,6 +475,19 @@ function sanitizeItems(items) {
     .filter((item) => item.name && Number.isFinite(item.durationSec) && item.durationSec > 0);
 }
 
+function sanitizeSavedWorkouts(workouts) {
+  if (!Array.isArray(workouts)) return [];
+  return workouts
+    .map((workout) => ({
+      id: String(workout?.id || makeWorkoutId()),
+      title: String(workout?.title || "ワークアウト").trim(),
+      workoutUrl: String(workout?.workoutUrl || ""),
+      items: sanitizeItems(workout?.items),
+      updatedAt: workout?.updatedAt || new Date().toISOString(),
+    }))
+    .filter((workout) => workout.items.length);
+}
+
 function normalizeItem(item) {
   const type = TYPE_LABELS[item?.type] ? item.type : "exercise";
   return {
@@ -414,8 +498,12 @@ function normalizeItem(item) {
 }
 
 function setLoading(isLoading) {
+  state.isExtracting = isLoading;
   els.extractButton.disabled = isLoading;
-  els.extractButton.textContent = isLoading ? "抽出中" : "抽出";
+  els.apiKeyInput.disabled = isLoading;
+  els.workoutUrlInput.disabled = isLoading;
+  els.extractButton.textContent = isLoading ? "解析中" : "動画からメニュー作成";
+  renderMode();
 }
 
 function showMessage(message, tone) {
@@ -432,6 +520,7 @@ function startPauseTimer() {
   }
   if (!state.items.length) return;
 
+  state.isComplete = false;
   state.isWorkoutMode = true;
   if (!state.startedOnce) {
     cue(660, 0.08, 35);
@@ -440,6 +529,7 @@ function startPauseTimer() {
   state.isRunning = true;
   state.intervalId = window.setInterval(tick, 1000);
   renderMode();
+  renderComplete();
   renderTimer();
 }
 
@@ -467,6 +557,10 @@ function advanceItem() {
     pauseTimer();
     cue(523, 0.1, [80, 50, 120]);
     window.setTimeout(() => cue(784, 0.16, 120), 140);
+    state.isWorkoutMode = false;
+    state.isComplete = true;
+    renderMode();
+    renderComplete();
     renderTimer();
     return;
   }
@@ -488,14 +582,23 @@ function resetTimer() {
   pauseTimer();
   state.currentIndex = 0;
   state.remainingSec = getCurrentItem()?.durationSec || 0;
+  state.isComplete = false;
+  renderComplete();
   renderTimer();
 }
 
 function exitWorkoutMode() {
   pauseTimer();
   state.isWorkoutMode = false;
+  state.isComplete = false;
   renderMode();
+  renderComplete();
   renderTimer();
+}
+
+function closeComplete() {
+  state.isComplete = false;
+  renderComplete();
 }
 
 function ensureAudio() {
@@ -557,6 +660,68 @@ function getCurrentItem() {
   return state.items[state.currentIndex];
 }
 
+function saveCurrentWorkoutToLibrary() {
+  const existing = state.savedWorkouts.find((workout) => workout.workoutUrl === state.workoutUrl);
+  const next = {
+    id: existing?.id || makeWorkoutId(),
+    title: state.title || "ワークアウト",
+    workoutUrl: state.workoutUrl,
+    items: state.items.map((item) => ({ ...item })),
+    updatedAt: new Date().toISOString(),
+  };
+  state.activeWorkoutId = next.id;
+  state.savedWorkouts = [next, ...state.savedWorkouts.filter((workout) => workout.id !== next.id)].slice(0, 20);
+}
+
+function syncActiveWorkout() {
+  if (!state.activeWorkoutId) return;
+  state.savedWorkouts = state.savedWorkouts.map((workout) => {
+    if (workout.id !== state.activeWorkoutId) return workout;
+    return {
+      ...workout,
+      title: state.title || workout.title,
+      workoutUrl: state.workoutUrl || workout.workoutUrl,
+      items: state.items.map((item) => ({ ...item })),
+      updatedAt: new Date().toISOString(),
+    };
+  });
+  renderSavedWorkouts();
+}
+
+function loadSavedWorkout(id) {
+  const workout = state.savedWorkouts.find((item) => item.id === id);
+  if (!workout) return;
+  pauseTimer();
+  state.activeWorkoutId = workout.id;
+  state.title = workout.title;
+  state.workoutUrl = workout.workoutUrl;
+  state.items = workout.items.map((item) => ({ ...item }));
+  state.currentIndex = 0;
+  state.remainingSec = state.items[0]?.durationSec || 0;
+  state.isWorkoutMode = false;
+  state.isComplete = false;
+  els.workoutUrlInput.value = state.workoutUrl;
+  renderItems();
+  renderTimer();
+  renderReady();
+  renderMode();
+  renderComplete();
+  saveState();
+  showMessage("保存済みワークアウトを読み込みました。", "ok");
+}
+
+function deleteSavedWorkout(id) {
+  state.savedWorkouts = state.savedWorkouts.filter((workout) => workout.id !== id);
+  if (state.activeWorkoutId === id) state.activeWorkoutId = "";
+  renderSavedWorkouts();
+  renderReady();
+  saveState();
+}
+
+function makeWorkoutId() {
+  return `workout-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function formatTime(totalSec) {
   const safe = Math.max(0, Math.round(totalSec || 0));
   const minutes = Math.floor(safe / 60);
@@ -606,11 +771,13 @@ function bindEvents() {
   });
   els.extractButton.addEventListener("click", extractMenu);
   els.addItemButton.addEventListener("click", addItem);
+  els.prepareStartButton.addEventListener("click", startPauseTimer);
   els.startPauseButton.addEventListener("click", startPauseTimer);
   els.prevButton.addEventListener("click", () => skip(-1));
   els.nextButton.addEventListener("click", () => skip(1));
   els.resetButton.addEventListener("click", resetTimer);
   els.exitWorkoutButton.addEventListener("click", exitWorkoutMode);
+  els.closeCompleteButton.addEventListener("click", closeComplete);
 }
 
 loadState();

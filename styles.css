@@ -42,6 +42,44 @@ body.alert-flash::before {
   background: rgba(255, 255, 255, 0.7);
 }
 
+body.extracting::after {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  z-index: 30;
+  width: min(calc(100vw - 28px), 360px);
+  transform: translateX(-50%);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px 12px 42px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--ink);
+  box-shadow: 0 10px 30px rgba(32, 35, 31, 0.16);
+  content: "解析中。別タブで動画探しOK";
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+body.extracting .setup-panel::before {
+  position: fixed;
+  top: 25px;
+  left: calc(50% - min(calc(100vw - 28px), 360px) / 2 + 14px);
+  z-index: 31;
+  width: 16px;
+  height: 16px;
+  border: 3px solid var(--accent-soft);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  content: "";
+  animation: spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 button,
 input,
 select,
@@ -107,9 +145,12 @@ button {
 }
 
 .setup-panel,
+.saved-panel,
+.ready-panel,
 .menu-panel,
 .player-panel,
-.timer-panel {
+.timer-panel,
+.complete-panel {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
@@ -262,6 +303,80 @@ textarea:focus {
   color: var(--accent-strong);
 }
 
+.saved-panel {
+  display: none;
+  margin-bottom: 12px;
+  padding: 0;
+}
+
+body.has-saved-workouts .saved-panel {
+  display: block;
+}
+
+.saved-panel summary {
+  min-height: 44px;
+  padding: 12px 14px;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.saved-list {
+  display: grid;
+  gap: 8px;
+  padding: 0 14px 14px;
+}
+
+.saved-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.saved-load {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 6px 0;
+  text-align: left;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-row span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.ready-panel {
+  display: none;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 14px;
+}
+
+body.has-workout .ready-panel {
+  display: grid;
+}
+
+.ready-panel h2 {
+  margin: 3px 0 4px;
+  font-size: 1.15rem;
+  line-height: 1.25;
+}
+
+.ready-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .content-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -393,7 +508,12 @@ td input {
 }
 
 .timer-panel {
+  display: none;
   padding: 14px;
+}
+
+body.training-mode .timer-panel {
+  display: flex;
 }
 
 .timer-sticky {
@@ -500,6 +620,15 @@ td input {
   margin-top: 10px;
 }
 
+.reset-button {
+  display: block;
+  width: max-content;
+  min-height: 36px;
+  margin: 10px auto 0;
+  padding: 0 12px;
+  font-size: 0.86rem;
+}
+
 .summary-strip {
   display: flex;
   align-items: center;
@@ -517,6 +646,28 @@ td input {
 
 .exit-button {
   display: none;
+}
+
+.complete-panel {
+  display: none;
+  grid-column: 1 / -1;
+  gap: 14px;
+  padding: 18px;
+  text-align: center;
+}
+
+body.complete-mode .complete-panel {
+  display: grid;
+}
+
+.complete-panel h2 {
+  margin: 4px 0 6px;
+  font-size: 1.6rem;
+}
+
+.complete-panel p {
+  margin: 0;
+  color: var(--muted);
 }
 
 body.training-mode {
@@ -543,7 +694,10 @@ body.training-mode .timer-panel {
 
 body.training-mode .topbar,
 body.training-mode .setup-panel,
+body.training-mode .saved-panel,
+body.training-mode .ready-panel,
 body.training-mode .menu-panel,
+body.training-mode .complete-panel,
 body.training-mode .player-panel .section-head,
 body.training-mode .player-panel .field,
 body.training-mode .summary-strip {
@@ -630,6 +784,10 @@ body.training-mode .control-grid {
 
 body.training-mode .full-button {
   margin-top: 8px;
+}
+
+body.training-mode .reset-button {
+  width: max-content;
 }
 
 body.training-mode .exit-button {
