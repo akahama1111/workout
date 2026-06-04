@@ -9,9 +9,41 @@
   --accent: #256f68;
   --accent-strong: #174f4b;
   --accent-soft: #d7ebe7;
+  --state: #256f68;
+  --state-strong: #174f4b;
+  --state-soft: #d7ebe7;
+  --ring-track: #dce5d8;
   --warn: #9a5b18;
   --danger: #a23a35;
   --shadow: 0 18px 45px rgba(43, 49, 38, 0.12);
+}
+
+body[data-timer-type="exercise"] {
+  --state: #256f68;
+  --state-strong: #174f4b;
+  --state-soft: #d7ebe7;
+  --ring-track: #dce5d8;
+}
+
+body[data-timer-type="rest"] {
+  --state: #2d6f9f;
+  --state-strong: #1c5178;
+  --state-soft: #d9edf8;
+  --ring-track: #dce7ee;
+}
+
+body[data-timer-type="warmup"] {
+  --state: #8a6c22;
+  --state-strong: #654d14;
+  --state-soft: #f2e8c7;
+  --ring-track: #ebe4d2;
+}
+
+body[data-timer-type="cooldown"] {
+  --state: #5f6470;
+  --state-strong: #454954;
+  --state-soft: #e3e6eb;
+  --ring-track: #e0e3e5;
 }
 
 * {
@@ -212,8 +244,8 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  border-color: var(--state);
+  box-shadow: 0 0 0 3px var(--state-soft);
 }
 
 .primary-button,
@@ -228,12 +260,12 @@ textarea:focus {
 }
 
 .primary-button {
-  background: var(--accent);
+  background: var(--state);
   color: #fff;
 }
 
 .primary-button:hover {
-  background: var(--accent-strong);
+  background: var(--state-strong);
 }
 
 .primary-button:disabled,
@@ -261,6 +293,21 @@ textarea:focus {
 .prompt-details {
   display: none;
   margin-top: 10px;
+}
+
+.api-key-details {
+  margin: 0 0 12px;
+}
+
+.api-key-details summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.api-key-details .field {
+  margin-top: 8px;
 }
 
 .prompt-details summary {
@@ -551,7 +598,7 @@ body.training-mode .timer-panel {
   width: min(74vw, 280px);
   aspect-ratio: 1;
   border-radius: 50%;
-  background: conic-gradient(var(--accent) 0deg, #dce5d8 0deg);
+  background: conic-gradient(var(--state) 0deg, var(--ring-track) 0deg);
 }
 
 .ring > div {

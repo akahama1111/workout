@@ -74,6 +74,8 @@ const state = {
 
 const els = {
   saveStatus: document.getElementById("saveStatus"),
+  apiKeyDetails: document.getElementById("apiKeyDetails"),
+  apiKeySummary: document.getElementById("apiKeySummary"),
   apiKeyInput: document.getElementById("apiKeyInput"),
   modelSelect: document.getElementById("modelSelect"),
   workoutUrlInput: document.getElementById("workoutUrlInput"),
@@ -169,6 +171,7 @@ function renderAll() {
   renderSavedWorkouts();
   renderMode();
   renderComplete();
+  renderApiKeyState(true);
 }
 
 function renderItems() {
@@ -233,20 +236,20 @@ function renderItems() {
 }
 
 function renderEmbed() {
-  const id = getYouTubeId(state.mediaUrl);
-  document.body.classList.toggle("has-media", Boolean(id) && state.items.length > 0);
+  const embed = getMediaEmbed(state.mediaUrl);
+  document.body.classList.toggle("has-media", Boolean(embed) && state.items.length > 0);
   els.embedFrame.innerHTML = "";
 
-  if (!id) {
+  if (!embed) {
     const p = document.createElement("p");
-    p.textContent = "URLを貼るとここにYouTubeが表示されます";
+    p.textContent = "URLを貼るとここに表示されます";
     els.embedFrame.appendChild(p);
     return;
   }
 
   const iframe = document.createElement("iframe");
-  iframe.src = `https://www.youtube.com/embed/${id}?rel=0`;
-  iframe.title = "YouTube player";
+  iframe.src = embed.src;
+  iframe.title = embed.title;
   iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
   iframe.allowFullscreen = true;
   els.embedFrame.appendChild(iframe);
@@ -261,10 +264,11 @@ function renderTimer() {
   const elapsed = total ? total - currentRemainingMs / 1000 : 0;
   const percent = total ? Math.max(0, Math.min(100, (elapsed / total) * 100)) : 0;
 
+  document.body.dataset.timerType = current?.type || "";
   els.timerType.textContent = current ? TYPE_LABELS[current.type] || current.type : "待機中";
   els.timerIndex.textContent = state.items.length ? `${state.currentIndex + 1} / ${state.items.length}` : "0 / 0";
   els.remainingTime.textContent = formatTime(visibleSec);
-  els.progressRing.style.background = `conic-gradient(var(--accent) ${percent * 3.6}deg, #dce5d8 0deg)`;
+  els.progressRing.style.background = `conic-gradient(var(--state) ${percent * 3.6}deg, var(--ring-track) 0deg)`;
   els.currentName.textContent = current?.name || "メニューを作成してください";
   els.nextName.textContent = next?.name || "なし";
   if (state.isRunning) {
@@ -286,7 +290,17 @@ function renderSelected() {
   els.prepareStartButton.disabled = !state.items.length;
   document.body.classList.toggle("has-workout", state.items.length > 0);
   document.body.classList.toggle("has-saved-workouts", state.savedWorkouts.length > 0);
-  document.body.classList.toggle("has-media", Boolean(getYouTubeId(state.mediaUrl)) && state.items.length > 0);
+  document.body.classList.toggle("has-media", Boolean(getMediaEmbed(state.mediaUrl)) && state.items.length > 0);
+}
+
+function renderApiKeyState(allowCollapse = false) {
+  const hasKey = state.apiKey.trim().length > 0;
+  els.apiKeySummary.textContent = hasKey ? "Gemini APIキー 設定済み" : "Gemini APIキー";
+  if (!hasKey) {
+    els.apiKeyDetails.open = true;
+  } else if (allowCollapse) {
+    els.apiKeyDetails.open = false;
+  }
 }
 
 function renderMode() {
@@ -467,6 +481,7 @@ async function extractMenu() {
   const workoutUrl = state.workoutUrl.trim();
 
   if (!apiKey) {
+    els.apiKeyDetails.open = true;
     showMessage("Gemini APIキーを入力してください。", "error");
     return;
   }
@@ -980,11 +995,79 @@ function getYouTubeId(url) {
   return "";
 }
 
+function getMediaEmbed(url) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "");
+
+    if (host === "youtu.be" || host.endsWith(".youtu.be")) {
+      const id = parsed.pathname.split("/").filter(Boolean)[0] || "";
+      return id ? makeYouTubeVideoEmbed(id) : null;
+    }
+
+    if (host === "youtube.com" || host.endsWith(".youtube.com")) {
+      const playlistId = parsed.searchParams.get("list");
+      if (playlistId) return makeYouTubePlaylistEmbed(playlistId);
+
+      if (parsed.pathname === "/watch") {
+        const id = parsed.searchParams.get("v") || "";
+        return id ? makeYouTubeVideoEmbed(id) : null;
+      }
+
+      if (parsed.pathname.startsWith("/shorts/") || parsed.pathname.startsWith("/embed/")) {
+        const id = parsed.pathname.split("/").filter(Boolean)[1] || "";
+        return id ? makeYouTubeVideoEmbed(id) : null;
+      }
+
+      if (parsed.pathname === "/playlist") {
+        return playlistId ? makeYouTubePlaylistEmbed(playlistId) : null;
+      }
+    }
+
+    if (host === "open.spotify.com") {
+      const [type, id] = parsed.pathname.split("/").filter(Boolean);
+      const supported = ["track", "album", "playlist", "episode", "show"];
+      if (supported.includes(type) && id) {
+        return {
+          src: `https://open.spotify.com/embed/${type}/${encodeURIComponent(id)}`,
+          title: "Spotify player",
+        };
+      }
+    }
+
+    if (host === "soundcloud.com" || host.endsWith(".soundcloud.com")) {
+      return {
+        src: `https://w.soundcloud.com/player/?url=${encodeURIComponent(parsed.href)}&auto_play=false&visual=true`,
+        title: "SoundCloud player",
+      };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function makeYouTubeVideoEmbed(id) {
+  return {
+    src: `https://www.youtube.com/embed/${encodeURIComponent(id)}?rel=0`,
+    title: "YouTube player",
+  };
+}
+
+function makeYouTubePlaylistEmbed(id) {
+  return {
+    src: `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(id)}&rel=0`,
+    title: "YouTube playlist player",
+  };
+}
+
 function bindEvents() {
   els.apiKeyInput.addEventListener("input", () => {
     state.apiKey = els.apiKeyInput.value;
+    renderApiKeyState(false);
     saveState();
   });
+  els.apiKeyInput.addEventListener("blur", () => renderApiKeyState(true));
   els.modelSelect.addEventListener("change", () => {
     state.model = els.modelSelect.value;
     saveState();
