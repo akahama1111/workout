@@ -1,0 +1,11 @@
+{
+  "name": "Workout Timer Builder",
+  "short_name": "Workout",
+  "description": "ワークアウト動画から自分用タイマーを作るツール",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f4ef",
+  "theme_color": "#256f68",
+  "orientation": "portrait"
+}

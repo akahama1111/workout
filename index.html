@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#256f68" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Workout Timer" />
+    <title>Workout Timer Builder</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Workout Timer</p>
+            <h1>動画をタイマーに変える</h1>
+            <p class="subtitle">ワークアウト動画からメニューを抽出して、好きなYouTubeと一緒に進めます。</p>
+          </div>
+          <div class="status-pill" id="saveStatus">保存済み</div>
+        </header>
+
+        <section class="setup-panel" aria-label="メニュー抽出">
+          <div class="field-grid">
+            <label class="field">
+              <span>Gemini APIキー</span>
+              <input id="apiKeyInput" type="password" autocomplete="off" placeholder="AIza..." />
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label class="field flex-1">
+              <span>ワークアウト動画URL</span>
+              <input id="workoutUrlInput" type="url" placeholder="https://www.youtube.com/watch?v=..." />
+            </label>
+            <button id="extractButton" class="primary-button" type="button">抽出</button>
+          </div>
+
+          <label class="field media-field">
+            <span>流したいYouTube URL</span>
+            <input id="mediaUrlInput" type="url" placeholder="https://www.youtube.com/watch?v=..." />
+          </label>
+
+          <details class="prompt-details">
+            <summary>詳細設定</summary>
+            <label class="field advanced-field">
+              <span>モデル</span>
+              <select id="modelSelect">
+                <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+              </select>
+            </label>
+            <div class="field advanced-field">
+              <span>Geminiへの指示文</span>
+            </div>
+            <textarea id="promptInput" rows="12" spellcheck="false"></textarea>
+          </details>
+
+          <div class="message-area" id="messageArea" role="status" aria-live="polite"></div>
+        </section>
+
+        <section class="content-grid">
+          <section class="player-panel" aria-label="再生枠">
+            <div class="embed-frame" id="embedFrame">
+              <p>URLを貼るとここにYouTubeが表示されます</p>
+            </div>
+          </section>
+        </section>
+      </section>
+
+      <aside class="timer-panel" aria-label="タイマー">
+        <div class="timer-sticky">
+          <div class="timer-meta">
+            <p id="timerType">待機中</p>
+            <span id="timerIndex">0 / 0</span>
+          </div>
+
+          <div class="timer-face">
+            <div class="ring" id="progressRing">
+              <div>
+                <span id="remainingTime">00:00</span>
+                <small id="progressLabel">0%</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="exercise-stack">
+            <p class="current-label">現在</p>
+            <h2 id="currentName">メニューを作成してください</h2>
+            <p><span>次</span><strong id="nextName">なし</strong></p>
+          </div>
+
+          <div class="control-grid">
+            <button id="prevButton" class="control-button" type="button" title="前へ">戻る</button>
+            <button id="startPauseButton" class="primary-button control-main" type="button">ワークアウト開始</button>
+            <button id="nextButton" class="control-button" type="button" title="次へ">次へ</button>
+          </div>
+          <button id="resetButton" class="ghost-button full-button" type="button">リセット</button>
+          <button id="exitWorkoutButton" class="ghost-button full-button exit-button" type="button">編集に戻る</button>
+
+          <div class="summary-strip">
+            <span>合計</span>
+            <strong id="totalDuration">0:00</strong>
+          </div>
+        </div>
+      </aside>
+
+      <details class="menu-panel app-menu" aria-label="メニュー編集">
+        <summary class="menu-summary">メニュー編集</summary>
+        <div class="menu-tools">
+          <button id="addItemButton" class="ghost-button" type="button">追加</button>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>種別</th>
+                <th>種目名</th>
+                <th>秒</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="itemsBody"></tbody>
+          </table>
+        </div>
+      </details>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
