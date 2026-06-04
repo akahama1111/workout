@@ -10,6 +10,7 @@ const DEFAULT_PROMPT = `あなたはワークアウト動画からトレーニ�
 {
   "title": "動画またはワークアウトの短いタイトル",
   "language": "ja",
+  "videoDurationSec": 180,
   "items": [
     {
       "type": "exercise",
@@ -33,6 +34,12 @@ const DEFAULT_PROMPT = `あなたはワークアウト動画からトレーニ�
 - 休憩が明示されている場合は rest として含める。
 - セットの繰り返しや左右差が複雑な場合でも、タイマーで順番に進められる1次元のリストに展開する。
 - durationSec が判断できない区間は、動画内の進行から最も妥当な整数秒にする。
+- まず動画全体の長さを把握し、videoDurationSec に整数秒で入れる。
+- items の durationSec 合計は、動画内で実際にトレーニングしている時間と整合させる。
+- 動画全体が3分前後なら、items 合計が5分以上になるような抽出は誤りとして見直す。
+- タイムスタンプ、概要欄の見出し番号、チャプター開始時刻を「種目の秒数」と誤解しない。
+- 動画内のカウントダウン、字幕、画面表示、音声の進行を優先して秒数を決める。
+- 動画時間とitems合計が明らかに矛盾する場合は、itemsを動画時間に合うよう再検証してから出力する。
 - 情報が不足していても空配列にはせず、読み取れる範囲で最善のメニューを作る。`;
 
 const TYPE_LABELS = {
@@ -109,7 +116,7 @@ function loadState() {
       model: parsed.model || state.model,
       workoutUrl: parsed.workoutUrl || "",
       mediaUrl: parsed.mediaUrl || "",
-      prompt: parsed.prompt || DEFAULT_PROMPT,
+      prompt: DEFAULT_PROMPT,
       title: parsed.title || "",
       items: sanitizeItems(parsed.items),
       savedWorkouts: sanitizeSavedWorkouts(parsed.savedWorkouts),
@@ -306,6 +313,7 @@ function renderSavedWorkouts() {
     titleInput.addEventListener("input", () => updateSavedWorkoutTitle(workout.id, titleInput.value));
 
     const meta = document.createElement("span");
+    meta.dataset.workoutMeta = workout.id;
     meta.textContent = `${workout.items.length}種目 / ${formatTime(workout.items.reduce((sum, item) => sum + item.durationSec, 0))}`;
 
     const load = document.createElement("button");
@@ -475,6 +483,7 @@ async function extractMenu() {
     const parsed = parseGeminiJson(text);
     const items = sanitizeItems(parsed.items);
     if (!items.length) throw new Error("有効なメニュー項目が見つかりませんでした。");
+    validateExtractedDuration(parsed, items);
 
     pauseTimer();
     state.title = parsed.title || "";
@@ -826,7 +835,30 @@ function updateSavedWorkoutItem(id, index, patch) {
     renderTimer();
     renderSelected();
   }
+  updateSavedWorkoutMeta(id);
   saveState();
+}
+
+function validateExtractedDuration(parsed, items) {
+  const videoDurationSec = Math.round(Number(parsed?.videoDurationSec) || 0);
+  if (!videoDurationSec) return;
+
+  const totalSec = items.reduce((sum, item) => sum + item.durationSec, 0);
+  const overageSec = totalSec - videoDurationSec;
+  if (overageSec > 20 && totalSec > videoDurationSec * 1.12) {
+    throw new Error("動画時間とメニュー合計が合わないため保存しませんでした。もう一度メニュー作成を実行してください。");
+  }
+}
+
+function updateSavedWorkoutMeta(id) {
+  const workout = state.savedWorkouts.find((item) => item.id === id);
+  if (!workout) return;
+  const total = workout.items.reduce((sum, item) => sum + item.durationSec, 0);
+  document.querySelectorAll("[data-workout-meta]").forEach((meta) => {
+    if (meta.dataset.workoutMeta === id) {
+      meta.textContent = `${workout.items.length}種目 / ${formatTime(total)}`;
+    }
+  });
 }
 
 function addSavedWorkoutItem(id) {
