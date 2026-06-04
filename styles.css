@@ -42,33 +42,18 @@ body.alert-flash::before {
   background: rgba(255, 255, 255, 0.7);
 }
 
-body.extracting::after {
-  position: fixed;
-  top: 14px;
-  left: 50%;
-  z-index: 30;
-  width: min(calc(100vw - 28px), 360px);
-  transform: translateX(-50%);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 12px 14px 12px 42px;
-  background: rgba(255, 255, 255, 0.96);
-  color: var(--ink);
-  box-shadow: 0 10px 30px rgba(32, 35, 31, 0.16);
-  content: "解析中。別タブで動画探しOK";
-  font-size: 0.9rem;
-  font-weight: 800;
+body.extracting #extractButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
 }
 
-body.extracting .setup-panel::before {
-  position: fixed;
-  top: 25px;
-  left: calc(50% - min(calc(100vw - 28px), 360px) / 2 + 14px);
-  z-index: 31;
+body.extracting #extractButton::before {
   width: 16px;
   height: 16px;
-  border: 3px solid var(--accent-soft);
-  border-top-color: var(--accent);
+  border: 3px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
   border-radius: 50%;
   content: "";
   animation: spin 800ms linear infinite;
@@ -160,6 +145,12 @@ button {
 .setup-panel {
   padding: 14px;
   margin-bottom: 12px;
+}
+
+.panel-title {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  line-height: 1.2;
 }
 
 .field-grid {
@@ -313,45 +304,71 @@ body.has-saved-workouts .saved-panel {
   display: block;
 }
 
-.saved-panel summary {
-  min-height: 44px;
-  padding: 12px 14px;
-  cursor: pointer;
-  font-weight: 900;
-}
-
 .saved-list {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   padding: 0 14px 14px;
 }
 
-.saved-row {
+.saved-card {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.saved-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   align-items: center;
   gap: 8px;
-  border-top: 1px solid var(--line);
-  padding-top: 8px;
 }
 
-.saved-load {
-  min-width: 0;
-  border: 0;
-  background: transparent;
-  color: var(--ink);
-  padding: 6px 0;
-  text-align: left;
+.saved-title-input {
+  min-height: 38px;
   font-weight: 900;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.saved-row span {
+.saved-head span {
   color: var(--muted);
   font-size: 0.8rem;
   white-space: nowrap;
+}
+
+.saved-start {
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.saved-edit {
+  margin-top: 8px;
+}
+
+.saved-edit summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.saved-items {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.saved-item-row {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) 72px 34px;
+  gap: 6px;
+}
+
+.saved-item-row input,
+.saved-item-row select {
+  min-height: 36px;
+  padding: 0 8px;
+}
+
+.saved-add {
+  width: 100%;
 }
 
 .ready-panel {
@@ -565,12 +582,6 @@ body.training-mode .timer-panel {
   letter-spacing: 0;
 }
 
-#progressLabel {
-  margin-top: 6px;
-  color: var(--muted);
-  font-weight: 800;
-}
-
 .exercise-stack {
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -627,6 +638,16 @@ body.training-mode .timer-panel {
   margin: 10px auto 0;
   padding: 0 12px;
   font-size: 0.86rem;
+}
+
+.timer-meta .reset-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  min-height: 36px;
+  margin: 0;
+  padding: 0;
+  font-size: 1rem;
 }
 
 .summary-strip {
@@ -731,7 +752,8 @@ body.training-mode .embed-frame {
 
 body.training-mode .timer-panel {
   display: flex;
-  align-items: stretch;
+  align-items: center;
+  justify-content: center;
   padding: 10px;
   border: 0;
   box-shadow: none;
@@ -739,8 +761,10 @@ body.training-mode .timer-panel {
 
 body.training-mode .timer-sticky {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto auto auto;
+  align-content: center;
   width: 100%;
+  max-width: 420px;
   min-height: 0;
 }
 
@@ -749,19 +773,15 @@ body.training-mode .timer-face {
 }
 
 body.training-mode .ring {
-  width: min(56vw, 210px, 30dvh);
+  width: min(68vw, 260px, 34dvh);
 }
 
 body.training-mode .ring > div {
-  width: calc(100% - 18px);
+  width: calc(100% - 28px);
 }
 
 body.training-mode #remainingTime {
-  font-size: clamp(2.5rem, 14vw, 3.6rem);
-}
-
-body.training-mode #progressLabel {
-  margin-top: 2px;
+  font-size: clamp(2.4rem, 13vw, 4rem);
 }
 
 body.training-mode .exercise-stack {
@@ -787,7 +807,7 @@ body.training-mode .full-button {
 }
 
 body.training-mode .reset-button {
-  width: max-content;
+  justify-self: end;
 }
 
 body.training-mode .exit-button {

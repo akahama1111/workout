@@ -54,12 +54,14 @@ const state = {
   activeWorkoutId: "",
   currentIndex: 0,
   remainingSec: 0,
+  remainingMs: 0,
+  endTime: 0,
   isRunning: false,
   isWorkoutMode: false,
   isExtracting: false,
   isComplete: false,
   startedOnce: false,
-  intervalId: null,
+  animationId: null,
   audioContext: null,
 };
 
@@ -84,7 +86,6 @@ const els = {
   timerIndex: document.getElementById("timerIndex"),
   progressRing: document.getElementById("progressRing"),
   remainingTime: document.getElementById("remainingTime"),
-  progressLabel: document.getElementById("progressLabel"),
   currentName: document.getElementById("currentName"),
   nextName: document.getElementById("nextName"),
   prevButton: document.getElementById("prevButton"),
@@ -118,10 +119,11 @@ function loadState() {
       isWorkoutMode: false,
       isExtracting: false,
       isComplete: false,
-      intervalId: null,
+      animationId: null,
       audioContext: null,
     });
     state.remainingSec = getCurrentItem()?.durationSec || 0;
+    state.remainingMs = state.remainingSec * 1000;
   } catch {
     localStorage.removeItem(STORAGE_KEY);
   }
@@ -246,13 +248,13 @@ function renderTimer() {
   const current = getCurrentItem();
   const next = state.items[state.currentIndex + 1];
   const total = current?.durationSec || 0;
-  const elapsed = total ? total - state.remainingSec : 0;
+  const visibleSec = Math.ceil((state.remainingMs || state.remainingSec * 1000) / 1000);
+  const elapsed = total ? total - (state.remainingMs || state.remainingSec * 1000) / 1000 : 0;
   const percent = total ? Math.max(0, Math.min(100, Math.round((elapsed / total) * 100))) : 0;
 
   els.timerType.textContent = current ? TYPE_LABELS[current.type] || current.type : "待機中";
   els.timerIndex.textContent = state.items.length ? `${state.currentIndex + 1} / ${state.items.length}` : "0 / 0";
-  els.remainingTime.textContent = formatTime(state.remainingSec);
-  els.progressLabel.textContent = `${percent}%`;
+  els.remainingTime.textContent = formatTime(visibleSec);
   els.progressRing.style.background = `conic-gradient(var(--accent) ${percent * 3.6}deg, #dce5d8 0deg)`;
   els.currentName.textContent = current?.name || "メニューを作成してください";
   els.nextName.textContent = next?.name || "なし";
@@ -292,17 +294,23 @@ function renderSavedWorkouts() {
   if (!state.savedWorkouts.length) return;
 
   state.savedWorkouts.forEach((workout) => {
-    const row = document.createElement("div");
-    row.className = "saved-row";
+    const card = document.createElement("article");
+    card.className = "saved-card";
 
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "saved-load";
-    button.textContent = workout.title || "ワークアウト";
-    button.addEventListener("click", () => loadSavedWorkout(workout.id));
+    const titleInput = document.createElement("input");
+    titleInput.className = "saved-title-input";
+    titleInput.value = workout.title || "ワークアウト";
+    titleInput.setAttribute("aria-label", "ワークアウト名");
+    titleInput.addEventListener("input", () => updateSavedWorkoutTitle(workout.id, titleInput.value));
 
     const meta = document.createElement("span");
     meta.textContent = `${workout.items.length}種目 / ${formatTime(workout.items.reduce((sum, item) => sum + item.durationSec, 0))}`;
+
+    const load = document.createElement("button");
+    load.type = "button";
+    load.className = "primary-button saved-start";
+    load.textContent = "選択";
+    load.addEventListener("click", () => loadSavedWorkout(workout.id));
 
     const remove = document.createElement("button");
     remove.type = "button";
@@ -311,9 +319,72 @@ function renderSavedWorkouts() {
     remove.title = "削除";
     remove.addEventListener("click", () => deleteSavedWorkout(workout.id));
 
-    row.append(button, meta, remove);
-    els.savedList.appendChild(row);
+    const head = document.createElement("div");
+    head.className = "saved-head";
+    head.append(titleInput, meta, load, remove);
+
+    const details = document.createElement("details");
+    details.className = "saved-edit";
+    const summary = document.createElement("summary");
+    summary.textContent = "内容を編集";
+    const editor = document.createElement("div");
+    editor.className = "saved-items";
+
+    workout.items.forEach((item, index) => {
+      editor.appendChild(makeSavedItemEditor(workout.id, item, index));
+    });
+
+    const add = document.createElement("button");
+    add.type = "button";
+    add.className = "ghost-button saved-add";
+    add.textContent = "種目を追加";
+    add.addEventListener("click", () => addSavedWorkoutItem(workout.id));
+    editor.appendChild(add);
+    details.append(summary, editor);
+
+    card.append(head, details);
+    els.savedList.appendChild(card);
   });
+}
+
+function makeSavedItemEditor(workoutId, item, index) {
+  const row = document.createElement("div");
+  row.className = "saved-item-row";
+
+  const typeSelect = document.createElement("select");
+  Object.entries(TYPE_LABELS).forEach(([value, label]) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    typeSelect.appendChild(option);
+  });
+  typeSelect.value = item.type;
+  typeSelect.addEventListener("change", () => updateSavedWorkoutItem(workoutId, index, { type: typeSelect.value }));
+
+  const nameInput = document.createElement("input");
+  nameInput.value = item.name;
+  nameInput.setAttribute("aria-label", "種目名");
+  nameInput.addEventListener("input", () => updateSavedWorkoutItem(workoutId, index, { name: nameInput.value }));
+
+  const durationInput = document.createElement("input");
+  durationInput.type = "number";
+  durationInput.min = "1";
+  durationInput.step = "1";
+  durationInput.value = item.durationSec;
+  durationInput.setAttribute("aria-label", "秒数");
+  durationInput.addEventListener("input", () => {
+    updateSavedWorkoutItem(workoutId, index, { durationSec: Math.max(1, Number(durationInput.value) || 1) });
+  });
+
+  const remove = document.createElement("button");
+  remove.type = "button";
+  remove.className = "icon-button";
+  remove.textContent = "×";
+  remove.title = "削除";
+  remove.addEventListener("click", () => deleteSavedWorkoutItem(workoutId, index));
+
+  row.append(typeSelect, nameInput, durationInput, remove);
+  return row;
 }
 
 function makeIconButton(label, title, onClick, disabled) {
@@ -395,7 +466,7 @@ async function extractMenu() {
   }
 
   setLoading(true);
-  showMessage("動画を解析中です。別タブで動画探しをしても、このページを閉じなければ続きます。", "");
+  showMessage("動画を解析中です。", "");
 
   try {
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(state.model)}:generateContent`;
@@ -446,6 +517,7 @@ async function extractMenu() {
     saveCurrentWorkoutToLibrary();
     state.currentIndex = 0;
     state.remainingSec = items[0].durationSec;
+    state.remainingMs = state.remainingSec * 1000;
     renderItems();
     renderTimer();
     renderReady();
@@ -527,33 +599,49 @@ function startPauseTimer() {
     state.startedOnce = true;
   }
   state.isRunning = true;
-  state.intervalId = window.setInterval(tick, 1000);
+  state.endTime = performance.now() + (state.remainingMs || state.remainingSec * 1000);
+  startAnimation();
   renderMode();
   renderComplete();
   renderTimer();
 }
 
 function pauseTimer() {
+  if (state.isRunning && state.endTime) {
+    state.remainingMs = Math.max(0, state.endTime - performance.now());
+    state.remainingSec = Math.ceil(state.remainingMs / 1000);
+  }
   state.isRunning = false;
-  if (state.intervalId) {
-    window.clearInterval(state.intervalId);
-    state.intervalId = null;
+  if (state.animationId) {
+    window.cancelAnimationFrame(state.animationId);
+    state.animationId = null;
   }
 }
 
-function tick() {
-  if (state.remainingSec > 1) {
-    state.remainingSec -= 1;
-    if (state.remainingSec <= 3) cue(880, 0.05, 25);
-    renderTimer();
-    return;
+function startAnimation() {
+  if (state.animationId) {
+    window.cancelAnimationFrame(state.animationId);
   }
-  advanceItem();
+  const animate = () => {
+    if (!state.isRunning) return;
+    state.remainingMs = Math.max(0, state.endTime - performance.now());
+    const nextSec = Math.ceil(state.remainingMs / 1000);
+    if (nextSec !== state.remainingSec && nextSec > 0 && nextSec <= 3) cue(880, 0.05, 25);
+    state.remainingSec = nextSec;
+    renderTimer();
+    if (state.remainingMs <= 0) {
+      advanceItem();
+      return;
+    }
+    state.animationId = window.requestAnimationFrame(animate);
+  };
+  state.animationId = window.requestAnimationFrame(animate);
 }
 
 function advanceItem() {
   if (state.currentIndex >= state.items.length - 1) {
     state.remainingSec = 0;
+    state.remainingMs = 0;
     pauseTimer();
     cue(523, 0.1, [80, 50, 120]);
     window.setTimeout(() => cue(784, 0.16, 120), 140);
@@ -566,7 +654,10 @@ function advanceItem() {
   }
   state.currentIndex += 1;
   state.remainingSec = getCurrentItem().durationSec;
+  state.remainingMs = state.remainingSec * 1000;
+  state.endTime = performance.now() + state.remainingMs;
   cue(getCurrentItem().type === "rest" ? 420 : 720, 0.12, 80);
+  if (state.isRunning) startAnimation();
   renderTimer();
 }
 
@@ -574,6 +665,11 @@ function skip(direction) {
   if (!state.items.length) return;
   state.currentIndex = Math.max(0, Math.min(state.items.length - 1, state.currentIndex + direction));
   state.remainingSec = getCurrentItem().durationSec;
+  state.remainingMs = state.remainingSec * 1000;
+  if (state.isRunning) {
+    state.endTime = performance.now() + state.remainingMs;
+    startAnimation();
+  }
   cue(600, 0.06, 35);
   renderTimer();
 }
@@ -582,6 +678,7 @@ function resetTimer() {
   pauseTimer();
   state.currentIndex = 0;
   state.remainingSec = getCurrentItem()?.durationSec || 0;
+  state.remainingMs = state.remainingSec * 1000;
   state.isComplete = false;
   renderComplete();
   renderTimer();
@@ -673,6 +770,80 @@ function saveCurrentWorkoutToLibrary() {
   state.savedWorkouts = [next, ...state.savedWorkouts.filter((workout) => workout.id !== next.id)].slice(0, 20);
 }
 
+function updateSavedWorkoutTitle(id, title) {
+  state.savedWorkouts = state.savedWorkouts.map((workout) =>
+    workout.id === id ? { ...workout, title: title.trim() || "ワークアウト", updatedAt: new Date().toISOString() } : workout,
+  );
+  if (state.activeWorkoutId === id) {
+    state.title = title.trim() || "ワークアウト";
+    renderReady();
+  }
+  saveState();
+}
+
+function updateSavedWorkoutItem(id, index, patch) {
+  state.savedWorkouts = state.savedWorkouts.map((workout) => {
+    if (workout.id !== id) return workout;
+    const items = workout.items.map((item, itemIndex) =>
+      itemIndex === index ? normalizeItem({ ...item, ...patch }) : item,
+    );
+    return { ...workout, items, updatedAt: new Date().toISOString() };
+  });
+  if (state.activeWorkoutId === id) {
+    const workout = state.savedWorkouts.find((item) => item.id === id);
+    state.items = workout?.items.map((item) => ({ ...item })) || [];
+    clampTimer();
+    renderItems();
+    renderTimer();
+    renderReady();
+  }
+  saveState();
+}
+
+function addSavedWorkoutItem(id) {
+  state.savedWorkouts = state.savedWorkouts.map((workout) => {
+    if (workout.id !== id) return workout;
+    return {
+      ...workout,
+      items: [...workout.items, { type: "exercise", name: "新しい種目", durationSec: 30 }],
+      updatedAt: new Date().toISOString(),
+    };
+  });
+  renderSavedWorkouts();
+  if (state.activeWorkoutId === id) {
+    const workout = state.savedWorkouts.find((item) => item.id === id);
+    state.items = workout?.items.map((item) => ({ ...item })) || [];
+    state.remainingSec = getCurrentItem()?.durationSec || 0;
+    state.remainingMs = state.remainingSec * 1000;
+    renderItems();
+    renderTimer();
+    renderReady();
+  }
+  saveState();
+}
+
+function deleteSavedWorkoutItem(id, index) {
+  state.savedWorkouts = state.savedWorkouts.map((workout) => {
+    if (workout.id !== id) return workout;
+    return {
+      ...workout,
+      items: workout.items.filter((_, itemIndex) => itemIndex !== index),
+      updatedAt: new Date().toISOString(),
+    };
+  }).filter((workout) => workout.items.length);
+  renderSavedWorkouts();
+  if (state.activeWorkoutId === id) {
+    const workout = state.savedWorkouts.find((item) => item.id === id);
+    state.items = workout?.items.map((item) => ({ ...item })) || [];
+    state.remainingSec = getCurrentItem()?.durationSec || 0;
+    state.remainingMs = state.remainingSec * 1000;
+    renderItems();
+    renderTimer();
+    renderReady();
+  }
+  saveState();
+}
+
 function syncActiveWorkout() {
   if (!state.activeWorkoutId) return;
   state.savedWorkouts = state.savedWorkouts.map((workout) => {
@@ -698,6 +869,7 @@ function loadSavedWorkout(id) {
   state.items = workout.items.map((item) => ({ ...item }));
   state.currentIndex = 0;
   state.remainingSec = state.items[0]?.durationSec || 0;
+  state.remainingMs = state.remainingSec * 1000;
   state.isWorkoutMode = false;
   state.isComplete = false;
   els.workoutUrlInput.value = state.workoutUrl;

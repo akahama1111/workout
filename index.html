@@ -22,7 +22,8 @@
           <div class="status-pill" id="saveStatus">保存済み</div>
         </header>
 
-        <section class="setup-panel" aria-label="メニュー抽出">
+        <section class="setup-panel" aria-label="新規ワークアウト作成">
+          <h2 class="panel-title">新しく作る</h2>
           <div class="field-grid">
             <label class="field">
               <span>Gemini APIキー</span>
@@ -56,10 +57,10 @@
           <div class="message-area" id="messageArea" role="status" aria-live="polite"></div>
         </section>
 
-        <details class="saved-panel" id="savedPanel" aria-label="保存済みワークアウト">
-          <summary>保存済みワークアウト</summary>
+        <section class="saved-panel" id="savedPanel" aria-label="保存済みワークアウト">
+          <h2 class="panel-title">保存済みから選ぶ</h2>
           <div class="saved-list" id="savedList"></div>
-        </details>
+        </section>
 
         <section class="ready-panel" aria-label="ワークアウト準備">
           <div>
@@ -88,13 +89,13 @@
           <div class="timer-meta">
             <p id="timerType">待機中</p>
             <span id="timerIndex">0 / 0</span>
+            <button id="resetButton" class="icon-button reset-button" type="button" title="最初から">↺</button>
           </div>
 
           <div class="timer-face">
             <div class="ring" id="progressRing">
               <div>
                 <span id="remainingTime">00:00</span>
-                <small id="progressLabel">0%</small>
               </div>
             </div>
           </div>
@@ -110,7 +111,6 @@
             <button id="startPauseButton" class="primary-button control-main" type="button">ワークアウト開始</button>
             <button id="nextButton" class="control-button" type="button" title="次へ">次へ</button>
           </div>
-          <button id="resetButton" class="ghost-button reset-button" type="button">最初から</button>
           <button id="exitWorkoutButton" class="ghost-button full-button exit-button" type="button">終了</button>
 
           <div class="summary-strip">
