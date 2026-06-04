@@ -698,13 +698,18 @@ body.training-mode {
 }
 
 body.training-mode .app-shell {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto;
+  align-content: center;
+  justify-items: stretch;
   gap: 10px;
   width: 100%;
-  min-height: 100svh;
-  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  height: 100dvh;
+  min-height: 100dvh;
+  overflow: hidden;
+  padding: 0;
+  transform: translateY(5vh);
 }
 
 body.training-mode .workspace,
@@ -714,7 +719,8 @@ body.training-mode .timer-panel {
 }
 
 body.training-mode .workspace {
-  width: 100%;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
 }
 
 body.training-mode .topbar,
@@ -730,7 +736,7 @@ body.training-mode .summary-strip {
 
 body.training-mode .content-grid {
   display: block;
-  width: 100%;
+  width: 100vw;
 }
 
 body.training-mode .player-panel {
@@ -747,7 +753,9 @@ body.training-mode:not(.has-media) .player-panel {
 }
 
 body.training-mode .embed-frame {
-  width: 100%;
+  width: 100vw;
+  height: auto;
+  aspect-ratio: 16 / 9;
   max-height: none;
   margin: 0;
   border-left: 0;
@@ -761,7 +769,7 @@ body.training-mode .timer-panel {
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: 0 10px;
+  padding: 0 8px;
   border: 0;
   background: transparent;
   box-shadow: none;
@@ -772,7 +780,7 @@ body.training-mode .timer-sticky {
   grid-template-rows: auto auto auto auto;
   align-content: center;
   width: 100%;
-  max-width: 420px;
+  max-width: min(420px, calc(100vw - 16px));
   min-height: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
