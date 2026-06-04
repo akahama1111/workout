@@ -650,15 +650,36 @@ body.training-mode .timer-panel {
 }
 
 .complete-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
   display: none;
-  grid-column: 1 / -1;
-  gap: 14px;
-  padding: 18px;
+  place-items: center;
+  border: 0;
+  border-radius: 0;
+  padding: 20px;
+  background: rgba(16, 20, 18, 0.62);
   text-align: center;
 }
 
 body.complete-mode .complete-panel {
   display: grid;
+}
+
+.complete-panel > div,
+.complete-panel > button {
+  width: min(100%, 340px);
+}
+
+.complete-panel > div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 22px 18px;
+  background: var(--panel);
+}
+
+.complete-panel .full-button {
+  margin-top: 10px;
 }
 
 .complete-panel h2 {
@@ -677,20 +698,23 @@ body.training-mode {
 }
 
 body.training-mode .app-shell {
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
   width: 100%;
-  height: 100dvh;
-  min-height: 100dvh;
-  padding: 8px 8px calc(76px + env(safe-area-inset-bottom));
+  min-height: 100svh;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
 }
 
 body.training-mode .workspace,
 body.training-mode .content-grid,
 body.training-mode .timer-panel {
   min-height: 0;
+}
+
+body.training-mode .workspace {
+  width: 100%;
 }
 
 body.training-mode .topbar,
@@ -706,6 +730,7 @@ body.training-mode .summary-strip {
 
 body.training-mode .content-grid {
   display: block;
+  width: 100%;
 }
 
 body.training-mode .player-panel {
@@ -723,18 +748,22 @@ body.training-mode:not(.has-media) .player-panel {
 
 body.training-mode .embed-frame {
   width: 100%;
-  max-height: 25dvh;
+  max-height: none;
   margin: 0;
+  border-left: 0;
+  border-right: 0;
   border-color: #2c3833;
-  border-radius: 8px;
+  border-radius: 0;
 }
 
 body.training-mode .timer-panel {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 10px;
+  width: 100%;
+  padding: 0 10px;
   border: 0;
+  background: transparent;
   box-shadow: none;
 }
 
@@ -745,6 +774,10 @@ body.training-mode .timer-sticky {
   width: 100%;
   max-width: 420px;
   min-height: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel);
 }
 
 body.training-mode .timer-face {
