@@ -248,9 +248,10 @@ function renderTimer() {
   const current = getCurrentItem();
   const next = state.items[state.currentIndex + 1];
   const total = current?.durationSec || 0;
-  const visibleSec = Math.ceil((state.remainingMs || state.remainingSec * 1000) / 1000);
-  const elapsed = total ? total - (state.remainingMs || state.remainingSec * 1000) / 1000 : 0;
-  const percent = total ? Math.max(0, Math.min(100, Math.round((elapsed / total) * 100))) : 0;
+  const currentRemainingMs = Number.isFinite(state.remainingMs) ? state.remainingMs : state.remainingSec * 1000;
+  const visibleSec = Math.ceil(currentRemainingMs / 1000);
+  const elapsed = total ? total - currentRemainingMs / 1000 : 0;
+  const percent = total ? Math.max(0, Math.min(100, (elapsed / total) * 100)) : 0;
 
   els.timerType.textContent = current ? TYPE_LABELS[current.type] || current.type : "待機中";
   els.timerIndex.textContent = state.items.length ? `${state.currentIndex + 1} / ${state.items.length}` : "0 / 0";
@@ -469,44 +470,7 @@ async function extractMenu() {
   showMessage("動画を解析中です。", "");
 
   try {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(state.model)}:generateContent`;
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                file_data: {
-                  file_uri: workoutUrl,
-                },
-              },
-              {
-                text: state.prompt,
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.15,
-          response_mime_type: "application/json",
-        },
-      }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data?.error?.message || "Gemini APIの呼び出しに失敗しました。");
-    }
-
-    const text = data?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("\n").trim();
-    if (!text) throw new Error("Geminiから抽出結果が返りませんでした。");
-
+    const text = await requestExtraction({ apiKey, model: state.model, workoutUrl, prompt: state.prompt });
     const parsed = parseGeminiJson(text);
     const items = sanitizeItems(parsed.items);
     if (!items.length) throw new Error("有効なメニュー項目が見つかりませんでした。");
@@ -529,6 +493,70 @@ async function extractMenu() {
   } finally {
     setLoading(false);
   }
+}
+
+function requestExtraction(payload) {
+  if (!window.Worker) {
+    return requestExtractionOnMainThread(payload);
+  }
+
+  return new Promise((resolve, reject) => {
+    const worker = new Worker("extractor-worker.js");
+    worker.addEventListener("message", (event) => {
+      worker.terminate();
+      if (event.data?.ok) {
+        resolve(event.data.text);
+      } else {
+        reject(new Error(event.data?.message || "抽出に失敗しました。"));
+      }
+    });
+    worker.addEventListener("error", (event) => {
+      worker.terminate();
+      reject(new Error(event.message || "抽出に失敗しました。"));
+    });
+    worker.postMessage(payload);
+  });
+}
+
+async function requestExtractionOnMainThread({ apiKey, model, workoutUrl, prompt }) {
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey,
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              file_data: {
+                file_uri: workoutUrl,
+              },
+            },
+            {
+              text: prompt,
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.15,
+        response_mime_type: "application/json",
+      },
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.error?.message || "Gemini APIの呼び出しに失敗しました。");
+  }
+
+  const text = data?.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("\n").trim();
+  if (!text) throw new Error("Geminiから抽出結果が返りませんでした。");
+  return text;
 }
 
 function parseGeminiJson(text) {

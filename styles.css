@@ -81,7 +81,7 @@ button {
   grid-template-columns: 1fr;
   gap: 12px;
   min-height: 100vh;
-  padding: 12px;
+  padding: 12px 12px calc(88px + env(safe-area-inset-bottom));
 }
 
 .workspace {
@@ -538,10 +538,10 @@ body.training-mode .timer-panel {
 }
 
 .timer-meta {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
+  gap: 8px;
   color: var(--muted);
   font-weight: 800;
 }
@@ -549,6 +549,23 @@ body.training-mode .timer-panel {
 .timer-meta p,
 .timer-meta span {
   margin: 0;
+}
+
+.timer-meta p {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timer-meta span {
+  justify-self: center;
+}
+
+.timer-tools {
+  display: flex;
+  justify-self: end;
+  gap: 6px;
 }
 
 .timer-face {
@@ -631,16 +648,8 @@ body.training-mode .timer-panel {
   margin-top: 10px;
 }
 
-.reset-button {
-  display: block;
-  width: max-content;
-  min-height: 36px;
-  margin: 10px auto 0;
-  padding: 0 12px;
-  font-size: 0.86rem;
-}
-
-.timer-meta .reset-button {
+.timer-meta .reset-button,
+.timer-meta .exit-button {
   display: grid;
   place-items: center;
   width: 36px;
@@ -704,7 +713,7 @@ body.training-mode .app-shell {
   width: 100%;
   height: 100dvh;
   min-height: 100dvh;
-  padding: 8px;
+  padding: 8px 8px calc(76px + env(safe-area-inset-bottom));
 }
 
 body.training-mode .workspace,
@@ -744,7 +753,7 @@ body.training-mode:not(.has-media) .player-panel {
 
 body.training-mode .embed-frame {
   width: 100%;
-  max-height: 32dvh;
+  max-height: 25dvh;
   margin: 0;
   border-color: #2c3833;
   border-radius: 8px;
@@ -754,7 +763,7 @@ body.training-mode .timer-panel {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px;
+  padding: 6px 10px;
   border: 0;
   box-shadow: none;
 }
@@ -769,26 +778,26 @@ body.training-mode .timer-sticky {
 }
 
 body.training-mode .timer-face {
-  padding: 8px 0;
+  padding: 6px 0;
 }
 
 body.training-mode .ring {
-  width: min(68vw, 260px, 34dvh);
+  width: min(62vw, 230px, 30dvh);
 }
 
 body.training-mode .ring > div {
-  width: calc(100% - 28px);
+  width: calc(100% - 26px);
 }
 
 body.training-mode #remainingTime {
-  font-size: clamp(2.4rem, 13vw, 4rem);
+  font-size: clamp(2.25rem, 12vw, 3.6rem);
 }
 
 body.training-mode .exercise-stack {
   display: grid;
   align-content: center;
   min-height: 0;
-  padding: 10px 0;
+  padding: 8px 0;
 }
 
 body.training-mode .exercise-stack h2 {
@@ -799,19 +808,11 @@ body.training-mode .exercise-stack h2 {
 
 body.training-mode .control-grid {
   gap: 8px;
-  margin-top: 10px;
-}
-
-body.training-mode .full-button {
   margin-top: 8px;
 }
 
-body.training-mode .reset-button {
-  justify-self: end;
-}
-
 body.training-mode .exit-button {
-  display: block;
+  display: grid;
 }
 
 @media (max-width: 1080px) {
@@ -826,7 +827,7 @@ body.training-mode .exit-button {
 
 @media (max-width: 760px) {
   .app-shell {
-    padding: 12px;
+    padding: 12px 12px calc(88px + env(safe-area-inset-bottom));
   }
 
   .topbar,
@@ -846,6 +847,20 @@ body.training-mode .exit-button {
 .control-button {
   width: 100%;
 }
+}
+
+@media (max-width: 430px) {
+  .saved-head {
+    grid-template-columns: 1fr auto auto;
+  }
+
+  .saved-title-input {
+    grid-column: 1 / -1;
+  }
+
+  .saved-head span {
+    justify-self: start;
+  }
 }
 
 @media (min-width: 1081px) {
